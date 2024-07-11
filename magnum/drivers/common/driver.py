@@ -13,31 +13,29 @@
 # under the License.
 
 import abc
+import six
 
-import importlib_metadata as metadata
 from oslo_config import cfg
-from oslo_log import log as logging
+from pkg_resources import iter_entry_points
 from stevedore import driver
-from stevedore import exception as stevedore_exception
 
 from magnum.common import exception
 from magnum.objects import cluster_template
 
 
 CONF = cfg.CONF
-LOG = logging.getLogger(__name__)
 
 
-class Driver(object, metaclass=abc.ABCMeta):
+@six.add_metaclass(abc.ABCMeta)
+class Driver(object):
 
     definitions = None
-    beta = False
 
     @classmethod
     def load_entry_points(cls):
-        for entry_point in metadata.entry_points(group='magnum.drivers'):
+        for entry_point in iter_entry_points('magnum.drivers'):
             if entry_point.name not in CONF.drivers.disabled_drivers:
-                yield entry_point, entry_point.load()
+                yield entry_point, entry_point.load(require=False)
 
     @classmethod
     def get_drivers(cls):
@@ -88,7 +86,7 @@ class Driver(object, metaclass=abc.ABCMeta):
         return cls.definitions
 
     @classmethod
-    def get_driver(cls, server_type, os, coe, driver_name=None):
+    def get_driver(cls, server_type, os, coe):
         """Get Driver.
 
         Returns the Driver class for the provided cluster_type.
@@ -125,33 +123,12 @@ class Driver(object, metaclass=abc.ABCMeta):
         definition_map = cls.get_drivers()
         cluster_type = (server_type, os, coe)
 
-        # if driver_name is specified, use that
-        if driver_name:
-            try:
-                found = driver.DriverManager("magnum.drivers",
-                                             driver_name).driver()
-                return found
-            except stevedore_exception.NoMatches:
-                raise exception.ClusterDriverNotSupported(
-                    driver_name=driver_name)
-
         if cluster_type not in definition_map:
             raise exception.ClusterTypeNotSupported(
                 server_type=server_type,
                 os=os,
                 coe=coe)
         driver_info = definition_map[cluster_type]
-        driver_name = driver_info['entry_point_name']
-        beta = driver_info['class'].beta
-        if (beta and
-                driver_name not in CONF.drivers.enabled_beta_drivers):
-            LOG.info(f"Driver {driver_name} is beta "
-                     "and needs to be explicitly enabled with "
-                     "[drivers]/enabled_beta_drivers.")
-            raise exception.ClusterTypeNotSupported(
-                server_type=server_type,
-                os=os,
-                coe=coe)
         # TODO(muralia): once --drivername is supported as an input during
         # cluster create, change the following line to use driver name for
         # loading.
@@ -162,8 +139,7 @@ class Driver(object, metaclass=abc.ABCMeta):
     def get_driver_for_cluster(cls, context, cluster):
         ct = cluster_template.ClusterTemplate.get_by_uuid(
             context, cluster.cluster_template_id)
-        return cls.get_driver(ct.server_type, ct.cluster_distro, ct.coe,
-                              ct.driver)
+        return cls.get_driver(ct.server_type, ct.cluster_distro, ct.coe)
 
     def update_cluster_status(self, context, cluster, use_admin_ctx=False):
         """Update the cluster status based on underlying orchestration
@@ -174,8 +150,7 @@ class Driver(object, metaclass=abc.ABCMeta):
         """
         return
 
-    @property
-    @abc.abstractmethod
+    @abc.abstractproperty
     def provides(self):
         """return a list of (server_type, os, coe) tuples
 

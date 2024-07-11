@@ -14,6 +14,7 @@
 
 from oslo_log import log as logging
 from oslo_utils import encodeutils
+import six
 
 from magnum.common import cert_manager
 from magnum.common import exception
@@ -25,7 +26,7 @@ import os
 import shutil
 import tempfile
 
-CONDUCTOR_CLIENT_NAME = 'Magnum-Conductor'
+CONDUCTOR_CLIENT_NAME = six.u('Magnum-Conductor')
 
 LOG = logging.getLogger(__name__)
 CONF = magnum.conf.CONF

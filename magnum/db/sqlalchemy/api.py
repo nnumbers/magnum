@@ -13,6 +13,7 @@
 # under the License.
 
 """SQLAlchemy storage backend."""
+import six
 
 from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import session as db_session
@@ -47,7 +48,9 @@ _FACADE = None
 def _create_facade_lazily():
     global _FACADE
     if _FACADE is None:
-        _FACADE = db_session.EngineFacade.from_config(CONF)
+        # FIXME(karolinku): autocommit=True it's not compatible with
+        # SQLAlchemy 2.0, and will be removed in future
+        _FACADE = db_session.EngineFacade.from_config(CONF, autocommit=True)
         if profiler_sqlalchemy:
             if CONF.profiler.enabled and CONF.profiler.trace_sqlalchemy:
                 profiler_sqlalchemy.add_tracing(sa, _FACADE.get_engine(), "db")
@@ -437,7 +440,7 @@ class Connection(api.Connection):
                 # NOTE(flwang): We only allow to update ClusterTemplate to be
                 # public, hidden and rename
                 if (not self._is_publishing_cluster_template(values) and
-                        list(values.keys()) != ["name"]):
+                        list(six.viewkeys(values)) != ["name"]):
                     raise exception.ClusterTemplateReferenced(
                         clustertemplate=cluster_template_id)
 

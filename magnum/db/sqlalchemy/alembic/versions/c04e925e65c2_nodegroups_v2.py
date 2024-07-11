@@ -41,10 +41,10 @@ def upgrade():
     # Populate existing nodegroups with the cluster stack_id
     connection = op.get_bind()
 
-    connection.execute(sa.text(
+    connection.execute(
         "UPDATE nodegroup "
         "INNER JOIN cluster ON nodegroup.cluster_id=cluster.uuid "
         "SET nodegroup.stack_id=cluster.stack_id, "
         "nodegroup.status=cluster.status, nodegroup.version=0 "
-        "WHERE nodegroup.cluster_id=cluster.uuid")
+        "WHERE nodegroup.cluster_id=cluster.uuid"
     )

@@ -52,7 +52,7 @@ EOF
 writeFile $OCTAVIA_INGRESS_CONTROLLER_CONFIGMAP "$OCTAVIA_INGRESS_CONTROLLER_CONFIGMAP_CONTENT"
 
 # octavia-ingress-controller deployment
-oic_image="${CONTAINER_INFRA_PREFIX:-registry.k8s.io/provider-os/}octavia-ingress-controller:${OCTAVIA_INGRESS_CONTROLLER_TAG}"
+oic_image="${CONTAINER_INFRA_PREFIX:-docker.io/k8scloudprovider/}octavia-ingress-controller:${OCTAVIA_INGRESS_CONTROLLER_TAG}"
 OCTAVIA_INGRESS_CONTROLLER=/srv/magnum/kubernetes/manifests/octavia-ingress-controller.yaml
 OCTAVIA_INGRESS_CONTROLLER_CONTENT=$(cat <<EOF
 ---
@@ -82,7 +82,7 @@ spec:
         - effect: NoExecute
           operator: Exists
       nodeSelector:
-        node-role.kubernetes.io/control-plane: "" # octavia-ingress-controller needs to access /etc/kubernetes folder.
+        node-role.kubernetes.io/master: "" # octavia-ingress-controller needs to access /etc/kubernetes folder.
       containers:
         - name: octavia-ingress-controller
           image: ${oic_image}

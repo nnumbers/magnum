@@ -16,6 +16,7 @@ from unittest import mock
 
 from oslo_utils import uuidutils
 
+import six
 import webtest
 import wsme
 from wsme import types as wtypes
@@ -191,7 +192,7 @@ class TestJsonPatchType(base.FunctionalTest):
 class TestMultiType(base.FunctionalTest):
 
     def test_valid_values(self):
-        vt = types.MultiType(wsme.types.text, int)
+        vt = types.MultiType(wsme.types.text, six.integer_types)
         value = vt.validate("hello")
         self.assertEqual("hello", value)
         value = vt.validate(10)
@@ -204,18 +205,18 @@ class TestMultiType(base.FunctionalTest):
         value = vt.validate(uuid)
         self.assertEqual(uuid, value)
 
-        vt = types.MultiType(types.UuidType, int)
+        vt = types.MultiType(types.UuidType, six.integer_types)
         value = vt.validate(10)
         self.assertEqual(10, value)
         value = vt.validate(uuid)
         self.assertEqual(uuid, value)
 
     def test_invalid_values(self):
-        vt = types.MultiType(wsme.types.text, int)
+        vt = types.MultiType(wsme.types.text, six.integer_types)
         self.assertRaises(ValueError, vt.validate, 0.10)
         self.assertRaises(ValueError, vt.validate, object())
 
-        vt = types.MultiType(types.UuidType, int)
+        vt = types.MultiType(types.UuidType, six.integer_types)
         self.assertRaises(ValueError, vt.validate, 'abc')
         self.assertRaises(ValueError, vt.validate, 0.10)
 

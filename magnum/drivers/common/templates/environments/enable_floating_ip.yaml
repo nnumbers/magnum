@@ -6,3 +6,9 @@ resource_registry:
 
   # kubeminion.yaml
   "Magnum::Optional::KubeMinion::Neutron::FloatingIP": "OS::Neutron::FloatingIP"
+
+  # swarmmaster.yaml
+  "Magnum::Optional::SwarmMaster::Neutron::FloatingIP": "OS::Neutron::FloatingIP"
+
+  # swarmnode.yaml
+  "Magnum::Optional::SwarmNode::Neutron::FloatingIP": "OS::Neutron::FloatingIP"

@@ -92,7 +92,7 @@ pygments_style = 'native'
 
 # openstackdocstheme options
 openstackdocs_repo_name = 'openstack/magnum'
-openstackdocs_use_storyboard = False
+openstackdocs_use_storyboard = True
 
 # -- Options for man page output ----------------------------------------------
 

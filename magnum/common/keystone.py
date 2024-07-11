@@ -263,16 +263,14 @@ class KeystoneClientV3(object):
                                                 domain_id=domain_id)
         return user
 
-    def delete_trustee(self, trustee_user_id):
-        if trustee_user_id is None:
-            return
+    def delete_trustee(self, trustee_id):
         try:
-            self.domain_admin_client.users.delete(trustee_user_id)
+            self.domain_admin_client.users.delete(trustee_id)
         except kc_exception.NotFound:
             pass
         except Exception:
             LOG.exception('Failed to delete trustee')
-            raise exception.TrusteeDeleteFailed(trustee_id=trustee_user_id)
+            raise exception.TrusteeDeleteFailed(trustee_id=trustee_id)
 
     def get_validate_region_name(self, region_name):
         if region_name is None:

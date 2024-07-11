@@ -27,8 +27,26 @@ function create_test_data {
     # First we test Magnum's command line to see if we can stand up
     # a cluster_template, cluster and a pod
 
-    local image_name="fedora-coreos"
-    local container_format="bare"
+    coe=$1
+    special=$2
+    if [ $coe == 'k8s-coreos' ]; then
+        local image_name="coreos"
+        local container_format="bare"
+    elif [ "${coe}${special}" == 'k8s-ironic' ]; then
+        local bm_flavor_id=$(openstack flavor show baremetal -f value -c id)
+        die_if_not_set $LINENO bm_flavor_id "Failed to get id of baremetal flavor"
+        # NOTE(TheJulia): This issue was fixed in Feb 2018 as part of change
+        # Ifb9a49d4258a559cf2175d902e9424a3f98065c5. Commented out in Oct 2018.
+        # NOTE(yuanying): Workaround fix for ironic issue
+        # cf. https://bugs.launchpad.net/ironic/+bug/1596421
+        # echo "alter table ironic.nodes modify instance_info LONGTEXT;" | mysql -uroot -p${MYSQL_PASSWORD} ironic
+        # NOTE(yuanying): Ironic instances need to connect to Internet
+        openstack subnet set private-subnet --dns-nameserver 8.8.8.8
+        local container_format="ami"
+    else
+        local image_name="fedora-coreos"
+        local container_format="bare"
+    fi
 
     # if we have the MAGNUM_IMAGE_NAME setting, use it instead
     # of the default one. In combination with MAGNUM_GUEST_IMAGE_URL
@@ -137,7 +155,7 @@ export MAGNUM_DIR="$BASE/new/magnum"
 sudo chown -R $USER:stack $MAGNUM_DIR
 
 # Run functional tests
-# Currently we support functional-api, functional-k8s.
+# Currently we support functional-api, functional-k8s, will support swarm.
 
 echo "Running magnum functional test suite for $1"
 
@@ -145,6 +163,10 @@ echo "Running magnum functional test suite for $1"
 
 coe=$1
 special=$2
+
+if [[ "-ironic" != "$special" ]]; then
+    add_flavor
+fi
 
 # Get admin credentials
 pushd ../devstack
@@ -162,6 +184,13 @@ EXIT_CODE=$?
 # Delete the keypair used in the functional test.
 echo_summary "Running keypair-delete"
 openstack keypair delete default
+
+if [[ "-ironic" != "$special" ]]; then
+    # Delete the flavor used in the functional test.
+    echo_summary "Running flavor-delete"
+    openstack flavor delete m1.magnum
+    openstack flavor delete s1.magnum
+fi
 
 # Save functional testing log
 sudo cp $MAGNUM_DIR/functional-tests.log /opt/stack/logs/

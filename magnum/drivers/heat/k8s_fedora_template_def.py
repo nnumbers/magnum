@@ -23,6 +23,7 @@ from magnum.drivers.heat import k8s_template_def
 from magnum.drivers.heat import template_def
 from magnum.i18n import _
 from oslo_config import cfg
+import six
 
 CONF = cfg.CONF
 
@@ -83,7 +84,7 @@ class K8sFedoraTemplateDefinition(k8s_template_def.K8sTemplateDefinition):
                       'containerd_tarball_url',
                       'containerd_tarball_sha256',
                       'calico_tag',
-                      'calico_ipv4pool',
+                      'calico_kube_controllers_tag', 'calico_ipv4pool',
                       'calico_ipv4pool_ipip',
                       'cinder_csi_enabled', 'cinder_csi_plugin_tag',
                       'csi_attacher_tag', 'csi_provisioner_tag',
@@ -111,6 +112,9 @@ class K8sFedoraTemplateDefinition(k8s_template_def.K8sTemplateDefinition):
                       'prometheus_adapter_chart_tag',
                       'prometheus_adapter_configmap',
                       'selinux_mode',
+                      'tiller_enabled',
+                      'tiller_tag',
+                      'tiller_namespace',
                       'helm_client_url', 'helm_client_sha256',
                       'helm_client_tag',
                       'traefik_ingress_controller_tag',
@@ -161,7 +165,8 @@ class K8sFedoraTemplateDefinition(k8s_template_def.K8sTemplateDefinition):
             extra_params['cert_manager_api'] = cert_manager_api
             ca_cert = cert_manager.get_cluster_ca_certificate(cluster,
                                                               context=context)
-            if isinstance(ca_cert.get_private_key_passphrase(), str):
+            if six.PY3 and isinstance(ca_cert.get_private_key_passphrase(),
+                                      six.text_type):
                 extra_params['ca_key'] = x509.decrypt_key(
                     ca_cert.get_private_key(),
                     ca_cert.get_private_key_passphrase().encode()

@@ -13,6 +13,7 @@
 # under the License.
 
 import datetime
+import six
 import uuid
 
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -103,10 +104,10 @@ def _generate_certificate(issuer_name, subject_name, extensions,
                           organization_name=None, ca_key=None,
                           encryption_password=None, ca_key_password=None):
 
-    if not isinstance(subject_name, str):
-        subject_name = subject_name.decode('utf-8')
-    if organization_name and not isinstance(organization_name, str):
-        organization_name = organization_name.decode('utf-8')
+    if not isinstance(subject_name, six.text_type):
+        subject_name = six.text_type(subject_name.decode('utf-8'))
+    if organization_name and not isinstance(organization_name, six.text_type):
+        organization_name = six.text_type(organization_name.decode('utf-8'))
 
     private_key = rsa.generate_private_key(
         public_exponent=65537,
@@ -131,8 +132,8 @@ def _generate_certificate(issuer_name, subject_name, extensions,
 
     csr = csr.sign(private_key, hashes.SHA256())
 
-    if isinstance(encryption_password, str):
-        encryption_password = encryption_password.encode('latin-1')
+    if six.PY3 and isinstance(encryption_password, six.text_type):
+        encryption_password = encryption_password.encode()
 
     if encryption_password:
         encryption_algorithm = serialization.BestAvailableEncryption(
@@ -160,10 +161,10 @@ def _generate_certificate(issuer_name, subject_name, extensions,
 
 def _load_pem_private_key(ca_key, ca_key_password=None):
     if not isinstance(ca_key, rsa.RSAPrivateKey):
-        if isinstance(ca_key, str):
-            ca_key = ca_key.encode('latin-1')
-        if isinstance(ca_key_password, str):
-            ca_key_password = ca_key_password.encode('latin-1')
+        if isinstance(ca_key, six.text_type):
+            ca_key = six.b(str(ca_key))
+        if isinstance(ca_key_password, six.text_type):
+            ca_key_password = six.b(str(ca_key_password))
 
         ca_key = serialization.load_pem_private_key(
             ca_key,
@@ -187,11 +188,11 @@ def sign(csr, issuer_name, ca_key, ca_key_password=None,
 
     ca_key = _load_pem_private_key(ca_key, ca_key_password)
 
-    if not isinstance(issuer_name, str):
-        issuer_name = issuer_name.decode('utf-8')
+    if not isinstance(issuer_name, six.text_type):
+        issuer_name = six.text_type(issuer_name.decode('utf-8'))
 
-    if isinstance(csr, str):
-        csr = csr.encode('latin-1')
+    if isinstance(csr, six.text_type):
+        csr = six.b(str(csr))
     if not isinstance(csr, x509.CertificateSigningRequest):
         try:
             csr = x509.load_pem_x509_csr(csr)

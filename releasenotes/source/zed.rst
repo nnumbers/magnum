@@ -3,4 +3,4 @@ Zed Series Release Notes
 ========================
 
 .. release-notes::
-   :branch: unmaintained/zed
+   :branch: stable/zed

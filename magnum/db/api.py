@@ -19,6 +19,7 @@ import abc
 
 from oslo_config import cfg
 from oslo_db import api as db_api
+import six
 
 from magnum.common import profiler
 
@@ -34,7 +35,8 @@ def get_instance():
 
 
 @profiler.trace_cls("db")
-class Connection(object, metaclass=abc.ABCMeta):
+@six.add_metaclass(abc.ABCMeta)
+class Connection(object):
     """Base class for storage system connections."""
 
     @abc.abstractmethod

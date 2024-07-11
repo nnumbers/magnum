@@ -32,13 +32,9 @@ drivers_opts = [
                     'install in all cluster nodes.'),
     cfg.ListOpt('disabled_drivers',
                 default=[],
-                help='Disabled driver entry points. If empty, then all '
-                     'available drivers are enabled.'
-                ),
-    cfg.ListOpt('enabled_beta_drivers',
-                default=[],
-                help='List of beta drivers to enable. Beta drivers are not '
-                     'intended for production.'
+                help='Disabled driver entry points. The default value is []. '
+                     ' Means if not specified, then all available drivers '
+                     'are enabled.'
                 ),
 ]
 

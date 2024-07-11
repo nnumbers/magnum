@@ -89,7 +89,7 @@ kubectl -n kube-system create secret generic os-trustee \
 
 #TODO: add heat variables for master count to determine leaderelect true/False ?
 if [ "$(echo "${CLOUD_PROVIDER_ENABLED}" | tr '[:upper:]' '[:lower:]')" = "true" ]; then
-    occm_image="${CONTAINER_INFRA_PREFIX:-registry.k8s.io/provider-os/}openstack-cloud-controller-manager:${CLOUD_PROVIDER_TAG}"
+    occm_image="${CONTAINER_INFRA_PREFIX:-docker.io/k8scloudprovider/}openstack-cloud-controller-manager:${CLOUD_PROVIDER_TAG}"
     OCCM=/srv/magnum/kubernetes/openstack-cloud-controller-manager.yaml
 
     [ -f ${OCCM} ] || {
@@ -336,7 +336,7 @@ spec:
       # this is to restrict CCM to only run on master nodes
       # the node selector may vary depending on your cluster setup
       nodeSelector:
-        node-role.kubernetes.io/control-plane: ""
+        node-role.kubernetes.io/master: ""
 EOF
     }
 
