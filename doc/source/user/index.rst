@@ -31,7 +31,6 @@ created and managed by Magnum to support the COE's.
 #. `Container Monitoring`_
 #. `Kubernetes Post Install Manifest`_
 #. `Kubernetes External Load Balancer`_
-#. `Rolling Upgrade`_
 #. `Keystone Authentication and Authorization for Kubernetes`_
 #. `Node Groups`_
 #. `Kubernetes Health Monitoring`_
@@ -40,7 +39,7 @@ Overview
 ========
 
 Magnum is an OpenStack API service developed by the OpenStack Containers Team
-making container orchestration engines (COE) such as Docker Swarm and
+making container orchestration engines (COE) such as
 Kubernetes available as first class resources in OpenStack.
 
 Magnum uses Heat to orchestrate an OS image which contains Docker and COE
@@ -56,15 +55,13 @@ Following are few salient features of Magnum:
 
 - Standard API based complete life-cycle management for Container Clusters
 - Multi-tenancy for container clusters
-- Choice of COE: Kubernetes, Swarm
+- Choice of COE: Kubernetes
 - Choice of container cluster deployment model: VM or Bare-metal
 - Keystone-based multi-tenant security and auth management
 - Neutron based multi-tenant network control and isolation
 - Cinder based volume service for containers
 - Integrated with OpenStack: SSO experience for cloud users
 - Secure container cluster access (TLS enabled)
-
-More details: `Magnum Project Wiki <https://wiki.openstack.org/wiki/Magnum>`_
 
 ClusterTemplate
 ---------------
@@ -155,7 +152,6 @@ They are loosely grouped as: mandatory, infrastructure, COE specific.
   COE           Network-Driver    Default
   ===========  =================  ========
   Kubernetes   flannel, calico    flannel
-  Swarm        docker, flannel    flannel
   ===========  =================  ========
 
   Note that the network driver name is case sensitive.
@@ -169,7 +165,6 @@ They are loosely grouped as: mandatory, infrastructure, COE specific.
   COE           Volume-Driver Default
   ============= ============= ===========
   Kubernetes    cinder        No Driver
-  Swarm         rexray        No Driver
   ============= ============= ===========
 
   Note that the volume driver name is case sensitive.
@@ -404,13 +399,6 @@ the table are linked to more details elsewhere in the user guide.
 +---------------------------------------+--------------------+---------------+
 | `k8s_keystone_auth_tag`_              | see below          | see below     |
 +---------------------------------------+--------------------+---------------+
-| `tiller_enabled`_                     | - true             | false         |
-|                                       | - false            |               |
-+---------------------------------------+--------------------+---------------+
-| `tiller_tag`_                         | see below          | ""            |
-+---------------------------------------+--------------------+---------------+
-| `tiller_namespace`_                   | see below          | see below     |
-+---------------------------------------+--------------------+---------------+
 | `helm_client_url`_                    | see below          | see below     |
 +---------------------------------------+--------------------+---------------+
 | `helm_client_sha256`_                 | see below          | see below     |
@@ -504,7 +492,7 @@ along with the health monitor and floating IP to be created.  It is
 important to distinguish resources in the IaaS level from resources in
 the PaaS level.  For instance, the infrastructure networking in
 OpenStack IaaS is different and separate from the container networking
-in Kubernetes or Swarm PaaS.
+in Kubernetes PaaS.
 
 Typical infrastructure includes the following.
 
@@ -847,8 +835,6 @@ COE and distro pairs:
 +============+===============+
 | Kubernetes | Fedora CoreOS |
 +------------+---------------+
-| Swarm      | Fedora Atomic |
-+------------+---------------+
 
 Magnum is designed to accommodate new cluster drivers to support custom
 COE's and this section describes how a new cluster driver can be
@@ -894,7 +880,7 @@ version.py
   Tracks the latest version of the driver in this directory.
   This is defined by a ``version`` attribute and is represented in the
   form of ``1.0.0``. It should also include a ``Driver`` attribute with
-  descriptive name such as ``fedora_swarm_atomic``.
+  descriptive name such as ``k8s_fedora_coreos``.
 
 
 The remaining components are optional:
@@ -939,24 +925,10 @@ Heat Stack Templates
 Choosing a COE
 ==============
 
-Magnum supports a variety of COE options, and allows more to be added over time
-as they gain popularity. As an operator, you may choose to support the full
-variety of options, or you may want to offer a subset of the available choices.
-Given multiple choices, your users can run one or more clusters, and each may
-use a different COE. For example, I might have multiple clusters that use
-Kubernetes, and just one cluster that uses Swarm. All of these clusters can
-run concurrently, even though they use different COE software.
-
 Choosing which COE to use depends on what tools you want to use to manage your
-containers once you start your app. If you want to use the Docker tools, you
-may want to use the Swarm cluster type. Swarm will spread your containers
-across the various nodes in your cluster automatically. It does not monitor
-the health of your containers, so it can't restart them for you if they stop.
-It will not automatically scale your app for you (as of Swarm version 1.2.2).
-You may view this as a plus. If you prefer to manage your application yourself,
-you might prefer swarm over the other COE options.
+containers once you start your app.
 
-Kubernetes (as of v1.2) is more sophisticated than Swarm (as of v1.2.2). It
+Kubernetes
 offers an attractive YAML file description of a pod, which is a grouping of
 containers that run together as part of a distributed application. This file
 format allows you to model your application deployment using a declarative
@@ -979,8 +951,8 @@ native client for the particular cluster type to interface with the
 clusters.  In the typical case, there are two clients to consider:
 
 COE level
-  This is the orchestration or management level such as Kubernetes,
-  Swarm and its frameworks.
+  This is the orchestration or management level such as Kubernetes
+  its frameworks.
 
 Container level
   This is the low level container operation.  Currently it is
@@ -1007,11 +979,6 @@ Kubernetes Dashboard running; it can be accessed using::
     kubectl proxy
 
     The browser can be accessed at http://localhost:8001/ui
-
-For Swarm, the main CLI is 'docker', along with associated tools
-such as 'docker-compose', etc.  Specific version of the binaries can
-be obtained from the `Docker Engine installation
-<https://docs.docker.com/engine/installation/binaries/>`_.
 
 Depending on the client requirement, you may need to use a version of
 the client that matches the version in the cluster.  To determine the
@@ -1238,9 +1205,7 @@ _`kube_tag`
   This label allows users to select a specific Kubernetes release based on its
   container tag for `Fedora CoreOS image
   <https://github.com/kubernetes/kubernetes/releases>`_. If unset, the current
-  Magnum version's default Kubernetes release is installed. `Take a look at
-  the Wiki for a compatibility matrix between Kubernetes and Magnum Releases
-  <https://wiki.openstack.org/wiki/Magnum#Compatibility_Matrix>`_.
+  Magnum version's default Kubernetes release is installed.
   Stein default: v1.11.6
   Train default: v1.15.7
   Ussuri default: v1.18.2
@@ -1432,22 +1397,6 @@ _`k8s_keystone_auth_tag`
   Train default: v1.14.0
   Ussuri default: v1.18.0
 
-_`tiller_enabled`
-  If set to true, tiller will be deployed in the kube-system namespace.
-  Ussuri default: false
-  Train default: false
-
-_`tiller_tag`
-  This label allows users to override the default container tag for Tiller.
-  For additional tags, `refer to Tiller page
-  <https://github.com/helm/helm/tags>`_ and look for tags<v3.0.0.
-  Train default: v2.12.3
-  Ussuri default: v2.16.7
-
-_`tiller_namespace`
-  The namespace in which Tiller and Helm v2 chart install jobs are installed.
-  Default: magnum-tiller
-
 _`helm_client_url`
   URL of the helm client binary.
   Default: ''
@@ -1459,8 +1408,7 @@ _`helm_client_sha256`
 _`helm_client_tag`
   This label allows users to override the default container tag for Helm
   client.  For additional tags, `refer to Helm client page
-  <https://github.com/helm/helm/tags>`_. You must use identical tiller_tag if
-  you wish to use Tiller (for helm_client_tag<v3.0.0).
+  <https://github.com/helm/helm/tags>`_.
   Ussuri default: v3.2.1
 
 _`master_lb_floating_ip_enabled`
@@ -1608,6 +1556,8 @@ The supported (tested) versions of Kubernetes and Operating Systems are:
 +-------------------+-------------------+-------------------------------+
 | Release           | kube_tag          | os distro and version         |
 +===================+===================+===============================+
+| 18.0.0 (Caracal)  | v1.27.8-rancher2  | fedora-coreos-38.20230806.3.0 |
++-------------------+-------------------+-------------------------------+
 | 17.0.0 (Bobcat)   | v1.26.8-rancher1  | fedora-coreos-38.20230806.3.0 |
 +-------------------+-------------------+-------------------------------+
 | 16.0.0 (Antelope) | v1.23.3-rancher1  | fedora-coreos-35.20220116.3.0 |
@@ -1638,11 +1588,18 @@ Supported labels
 
 The tested labels for each release is as follow
 
+- Caracal
+
+  kube_tag=v1.27.8-rancher2,container_runtime=containerd,containerd_version=1.6.28,containerd_tarball_sha256=f70736e52d61e5ad225f4fd21643b5ca1220013ab8b6c380434caeefb572da9b,cloud_provider_tag=v1.27.3,cinder_csi_plugin_tag=v1.27.3,k8s_keystone_auth_tag=v1.27.3,magnum_auto_healer_tag=v1.27.3,octavia_ingress_controller_tag=v1.27.3,calico_tag=v3.26.4
+
 - Bobcat
+
   kube_tag=v1.25.9-rancher1,flannel_tag=v0.21.5,master_lb_floating_ip_enabled=true,cinder_csi_enabled=true,ingress_controller=octavia,container_runtime=containerd,containerd_version=1.6.20,containerd_tarball_sha256=1d86b534c7bba51b78a7eeb1b67dd2ac6c0edeb01c034cc5f590d5ccd824b416,cloud_provider_tag=v1.25.5,cinder_csi_plugin_tag=v1.25.5,k8s_keystone_auth_tag=v1.25.5,octavia_ingress_controller_tag=v1.25.5,coredns_tag=1.10.1,csi_snapshotter_tag=v6.2.1,csi_attacher_tag=v4.2.0,csi_resizer_tag=v1.7.0,csi_provisioner_tag=v3.4.1,csi_node_driver_registrar_tag=v2.8.0
+
   kube_tag=v1.26.8-rancher1,flannel_tag=v0.21.5,master_lb_floating_ip_enabled=true,cinder_csi_enabled=true,ingress_controller=octavia,container_runtime=containerd,containerd_version=1.6.20,containerd_tarball_sha256=1d86b534c7bba51b78a7eeb1b67dd2ac6c0edeb01c034cc5f590d5ccd824b416,cloud_provider_tag=v1.26.3,cinder_csi_plugin_tag=v1.26.3,k8s_keystone_auth_tag=v1.26.3,octavia_ingress_controller_tag=v1.26.3,coredns_tag=1.10.1,csi_snapshotter_tag=v6.2.1,csi_attacher_tag=v4.2.0,csi_resizer_tag=v1.7.0,csi_provisioner_tag=v3.4.1,csi_node_driver_registrar_tag=v2.8.0
 
 - Antelope
+
   kube_tag=v1.23.8-rancher1,flannel_tag=v0.18.1,master_lb_floating_ip_enabled=true,cinder_csi_enabled=true,ingress_controller=octavia,container_runtime=containerd,containerd_version=1.6.6,containerd_tarball_sha256=a64568c8ce792dd73859ce5f336d5485fcbceab15dc3e06d5d1bc1c3353fa20f,cloud_provider_tag=v1.23.4,cinder_csi_plugin_tag=v1.23.4,k8s_keystone_auth_tag=v1.23.4,magnum_auto_healer_tag=v1.23.4,octavia_ingress_controller_tag=v1.23.4,autoscaler_tag=v1.23.0,coredns_tag=1.9.3,csi_snapshotter_tag=v4.2.1,csi_attacher_tag=v3.3.0,csi_resizer_tag=v1.3.0,csi_provisioner_tag=v3.0.0,csi_node_driver_registrar_tag=v2.4.0
 
 Images
@@ -1711,8 +1668,6 @@ _`ingress_controller`
   Controller is configured. For more details about octavia-ingress-controller
   please refer to `cloud-provider-openstack document
   <https://github.com/kubernetes/cloud-provider-openstack/blob/master/docs/octavia-ingress-controller/using-octavia-ingress-controller.md>`_
-  To use 'nginx' ingress controller, tiller_enabled must be true when using
-  helm_client_tag<v3.0.0.
 
 _`ingress_controller_role`
   This label defines the role nodes should have to run an instance of the
@@ -1838,10 +1793,8 @@ Current TLS support is summarized below:
 +============+=============+
 | Kubernetes | yes         |
 +------------+-------------+
-| Swarm      | yes         |
-+------------+-------------+
 
-For cluster type with TLS support, e.g. Kubernetes and Swarm, TLS is
+For cluster type with TLS support, e.g. Kubernetes, TLS is
 enabled by default.  To disable TLS in Magnum, you can specify the
 parameter '--tls-disabled' in the ClusterTemplate.  Please note it is not
 recommended to disable TLS due to security reasons.
@@ -1976,7 +1929,7 @@ Automated
 Magnum provides the command 'cluster-config' to help the user in setting
 up the environment and artifacts for TLS, for example::
 
-    openstack coe cluster config swarm-cluster --dir myclusterconfig
+    openstack coe cluster config kubernetes-cluster --dir myclusterconfig
 
 This will display the necessary environment variables, which you
 can add to your environment::
@@ -2089,8 +2042,8 @@ Rotate Certificate
 User Examples
 -------------
 
-Here are some examples for using the CLI on a secure Kubernetes and
-Swarm cluster.  You can perform all the TLS set up automatically by::
+Here are some examples for using the CLI on a secure Kubernetes cluster.
+You can perform all the TLS set up automatically by::
 
     eval $(openstack coe cluster config <cluster-name>)
 
@@ -2290,18 +2243,15 @@ network-driver
   The network driver name for instantiating container networks.
   Currently, the following network drivers are supported:
 
-  +--------+-------------+-------------+
-  | Driver | Kubernetes  |   Swarm     |
-  +========+=============+=============+
-  | Flannel| supported   | supported   |
-  +--------+-------------+-------------+
-  | Docker | unsupported | supported   |
-  +--------+-------------+-------------+
-  | Calico | supported   | unsupported |
-  +--------+-------------+-------------+
+  +--------+-------------+
+  | Driver | Kubernetes  |
+  +========+=============+
+  | Flannel| supported   |
+  +--------+-------------+
+  | Calico | supported   |
+  +--------+-------------+
 
-  If not specified, the default driver is Flannel for Kubernetes, and
-  Docker for Swarm.
+  If not specified, the default driver is Flannel for Kubernetes.
 
 Particular network driver may require its own set of parameters for
 configuration, and these parameters are specified through the labels
@@ -2520,11 +2470,6 @@ Kubernetes
   ensure that Kubernetes will not launch new pods on these nodes after
   Magnum has scanned the pods.
 
-Swarm
-  No node selection heuristic is currently supported.  If you decrease
-  the node_count, a node will be chosen by magnum without
-  consideration of what containers are running on the selected node.
-
 
 Currently, scaling containers and scaling cluster nodes are handled
 separately, but in many use cases, there are interactions between the
@@ -2608,14 +2553,6 @@ so that it can be accessed later.  To persist the data, a Cinder
 volume with a filesystem on it can be mounted on a host and be made
 available to the container, then be unmounted when the container exits.
 
-Docker provides the 'volume' feature for this purpose: the user
-invokes the 'volume create' command, specifying a particular volume
-driver to perform the actual work.  Then this volume can be mounted
-when a container is created.  A number of third-party volume drivers
-support OpenStack Cinder as the backend, for example Rexray and
-Flocker.  Magnum currently supports Rexray as the volume driver for
-Swarm.  Other drivers are being considered.
-
 Kubernetes allows a previously created Cinder block to be mounted to
 a pod and this is done by specifying the block ID in the pod YAML file.
 When the pod is scheduled on a node, Kubernetes will interface with
@@ -2630,13 +2567,11 @@ Magnum supports these features to use Cinder as persistent storage
 using the ClusterTemplate attribute 'volume-driver' and the support matrix
 for the COE types is summarized as follows:
 
-+--------+-------------+-------------+
-| Driver | Kubernetes  |    Swarm    |
-+========+=============+=============+
-| cinder | supported   | unsupported |
-+--------+-------------+-------------+
-| rexray | unsupported | supported   |
-+--------+-------------+-------------+
++--------+-------------+
+| Driver | Kubernetes  |
++========+=============+
+| cinder | supported   |
++--------+-------------+
 
 Following are some examples for using Cinder as persistent storage.
 
@@ -2726,11 +2661,6 @@ and on an OpenStack client you can run the command 'cinder list' to verify
 that the cinder volume status is 'in-use'.
 
 
-Using Cinder in Swarm
-+++++++++++++++++++++
-*To be filled in*
-
-
 Image Management
 ================
 
@@ -2738,7 +2668,7 @@ When a COE is deployed, an image from Glance is used to boot the nodes
 in the cluster and then the software will be configured and started on
 the nodes to bring up the full cluster.  An image is based on a
 particular distro such as Fedora, Ubuntu, etc, and is prebuilt with
-the software specific to the COE such as Kubernetes and Swarm.
+the software specific to the COE such as Kubernetes.
 The image is tightly coupled with the following in Magnum:
 
 1. Heat templates to orchestrate the configuration.
@@ -2785,17 +2715,6 @@ The following software are managed as systemd services:
 - etcd
 
 The login user for this image is *core*.
-
-Kubernetes on Ironic
---------------------
-
-This image is built manually using diskimagebuilder. The scripts and
-instructions are included in `Magnum code repo
-<https://opendev.org/openstack/magnum/src/branch/master/magnum/drivers/k8s_fedora_ironic_v1/image/kubernetes>`_.
-Currently Ironic is not fully supported yet, therefore more details will be
-provided when this driver has been fully tested.
-
-
 
 Notification
 ============
@@ -2969,11 +2888,6 @@ Kubernetes External Load Balancer
 =================================
 
 .. include:: kubernetes-load-balancer.rst
-
-Rolling Upgrade
-===============
-
-.. include:: rolling-upgrade.rst
 
 
 Keystone Authentication and Authorization for Kubernetes

@@ -16,7 +16,6 @@
 import abc
 
 from oslo_log import log
-import six
 
 from magnum.common import profiler
 import magnum.conf
@@ -29,14 +28,14 @@ CONF = magnum.conf.CONF
 
 
 @profiler.trace_cls("rpc")
-@six.add_metaclass(abc.ABCMeta)
-class MonitorBase(object):
+class MonitorBase(object, metaclass=abc.ABCMeta):
 
     def __init__(self, context, cluster):
         self.context = context
         self.cluster = cluster
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def metrics_spec(self):
         """Metric specification."""
 

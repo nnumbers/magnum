@@ -208,7 +208,7 @@ spec:
       namespace: kube-system
     spec:
       nodeSelector:
-        node-role.kubernetes.io/master: ""
+        node-role.kubernetes.io/control-plane: ""
       hostNetwork: true
       tolerations:
         - effect: NoSchedule
@@ -220,7 +220,7 @@ spec:
         - key: node.cloudprovider.kubernetes.io/uninitialized
           value: "true"
           effect: NoSchedule
-        - key: node-role.kubernetes.io/master
+        - key: node-role.kubernetes.io/control-plane
           effect: NoSchedule
       containers:
       # You'll want to change these labels and conditions to suit your deployment.
@@ -239,7 +239,7 @@ EOF
 
 function enable_magnum_auto_healer {
     echo "Installing magnum_auto_healer"
-    image_prefix=${CONTAINER_INFRA_PREFIX:-docker.io/k8scloudprovider/}
+    image_prefix=${CONTAINER_INFRA_PREFIX:-registry.k8s.io/provider-os/}
     image_prefix=${image_prefix%/}
     magnum_auto_healer_manifest=/srv/magnum/kubernetes/manifests/magnum_auto_healer.yaml
 
@@ -336,7 +336,7 @@ spec:
         - effect: NoExecute
           operator: Exists
       nodeSelector:
-        node-role.kubernetes.io/master: ""
+        node-role.kubernetes.io/control-plane: ""
       containers:
         - name: magnum-auto-healer
           image: ${image_prefix}/magnum-auto-healer:${MAGNUM_AUTO_HEALER_TAG}

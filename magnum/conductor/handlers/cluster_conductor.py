@@ -15,7 +15,6 @@
 from heatclient import exc
 from oslo_log import log as logging
 from pycadf import cadftaxonomy as taxonomy
-import six
 
 from magnum.common import clients
 from magnum.common import exception
@@ -83,14 +82,14 @@ class Handler(object):
 
         except Exception as e:
             cluster.status = fields.ClusterStatus.CREATE_FAILED
-            cluster.status_reason = six.text_type(e)
+            cluster.status_reason = str(e)
             cluster.save()
             conductor_utils.notify_about_cluster_operation(
                 context, taxonomy.ACTION_CREATE, taxonomy.OUTCOME_FAILURE,
                 cluster)
 
             if isinstance(e, exc.HTTPBadRequest):
-                e = exception.InvalidParameterValue(message=six.text_type(e))
+                e = exception.InvalidParameterValue(message=str(e))
 
                 raise e
             raise
@@ -147,7 +146,8 @@ class Handler(object):
         ct = conductor_utils.retrieve_cluster_template(context, cluster)
         cluster_driver = driver.Driver.get_driver(ct.server_type,
                                                   ct.cluster_distro,
-                                                  ct.coe)
+                                                  ct.coe,
+                                                  ct.driver)
         # Update cluster
         try:
             conductor_utils.notify_about_cluster_operation(
@@ -160,7 +160,7 @@ class Handler(object):
             cluster.status_reason = None
         except Exception as e:
             cluster.status = fields.ClusterStatus.UPDATE_FAILED
-            cluster.status_reason = six.text_type(e)
+            cluster.status_reason = str(e)
             cluster.save()
             # Restore the node_count
             worker_ng.node_count = old_node_count
@@ -169,7 +169,7 @@ class Handler(object):
                 context, taxonomy.ACTION_UPDATE, taxonomy.OUTCOME_FAILURE,
                 cluster)
             if isinstance(e, exc.HTTPBadRequest):
-                e = exception.InvalidParameterValue(message=six.text_type(e))
+                e = exception.InvalidParameterValue(message=str(e))
                 raise e
             raise
 
@@ -183,7 +183,8 @@ class Handler(object):
         ct = conductor_utils.retrieve_cluster_template(context, cluster)
         cluster_driver = driver.Driver.get_driver(ct.server_type,
                                                   ct.cluster_distro,
-                                                  ct.coe)
+                                                  ct.coe,
+                                                  ct.driver)
         try:
             conductor_utils.notify_about_cluster_operation(
                 context, taxonomy.ACTION_DELETE, taxonomy.OUTCOME_PENDING,
@@ -219,7 +220,7 @@ class Handler(object):
                 context, taxonomy.ACTION_DELETE, taxonomy.OUTCOME_FAILURE,
                 cluster)
             cluster.status = fields.ClusterStatus.DELETE_FAILED
-            cluster.status_reason = six.text_type(unexp)
+            cluster.status_reason = str(unexp)
             cluster.save()
             raise
 
@@ -264,7 +265,8 @@ class Handler(object):
         ct = conductor_utils.retrieve_cluster_template(context, cluster)
         cluster_driver = driver.Driver.get_driver(ct.server_type,
                                                   ct.cluster_distro,
-                                                  ct.coe)
+                                                  ct.coe,
+                                                  ct.driver)
         # Backup the old node count so that we can restore it
         # in case of an exception.
         old_node_count = nodegroup.node_count
@@ -284,17 +286,17 @@ class Handler(object):
             cluster.status_reason = None
         except Exception as e:
             cluster.status = fields.ClusterStatus.UPDATE_FAILED
-            cluster.status_reason = six.text_type(e)
+            cluster.status_reason = str(e)
             cluster.save()
             nodegroup.node_count = old_node_count
             nodegroup.status = fields.ClusterStatus.UPDATE_FAILED
-            nodegroup.status_reason = six.text_type(e)
+            nodegroup.status_reason = str(e)
             nodegroup.save()
             conductor_utils.notify_about_cluster_operation(
                 context, taxonomy.ACTION_UPDATE, taxonomy.OUTCOME_FAILURE,
                 cluster)
             if isinstance(e, exc.HTTPBadRequest):
-                e = exception.InvalidParameterValue(message=six.text_type(e))
+                e = exception.InvalidParameterValue(message=str(e))
                 raise e
             raise
 
@@ -328,7 +330,9 @@ class Handler(object):
         ct = conductor_utils.retrieve_cluster_template(context, cluster)
         cluster_driver = driver.Driver.get_driver(ct.server_type,
                                                   ct.cluster_distro,
-                                                  ct.coe)
+                                                  ct.coe,
+                                                  ct.driver)
+
         # Upgrade cluster
         try:
             conductor_utils.notify_about_cluster_operation(
@@ -339,18 +343,25 @@ class Handler(object):
             cluster.status = fields.ClusterStatus.UPDATE_IN_PROGRESS
             nodegroup.status = fields.ClusterStatus.UPDATE_IN_PROGRESS
             cluster.status_reason = None
+        except exception.NotSupported:
+            # If upgrade isn't support by the driver, nothing took place.
+            # So no need to set the cluster to failed status.
+            conductor_utils.notify_about_cluster_operation(
+                context, taxonomy.ACTION_UPDATE, taxonomy.OUTCOME_FAILURE,
+                cluster)
+            raise
         except Exception as e:
             cluster.status = fields.ClusterStatus.UPDATE_FAILED
-            cluster.status_reason = six.text_type(e)
+            cluster.status_reason = str(e)
             cluster.save()
             nodegroup.status = fields.ClusterStatus.UPDATE_FAILED
-            nodegroup.status_reason = six.text_type(e)
+            nodegroup.status_reason = str(e)
             nodegroup.save()
             conductor_utils.notify_about_cluster_operation(
                 context, taxonomy.ACTION_UPDATE, taxonomy.OUTCOME_FAILURE,
                 cluster)
             if isinstance(e, exc.HTTPBadRequest):
-                e = exception.InvalidParameterValue(message=six.text_type(e))
+                e = exception.InvalidParameterValue(message=str(e))
                 raise e
             raise
 

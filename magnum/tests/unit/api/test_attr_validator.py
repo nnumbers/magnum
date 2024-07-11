@@ -94,6 +94,84 @@ class TestAttrValidator(base.BaseTestCase):
                           attr_validator.validate_external_network,
                           mock_os_cli, 'test_ext_net')
 
+    def test_validate_fixed_network_with_valid_network(self):
+        mock_networks = {'networks': [{'name': 'test_net',
+                         'id': 'test_net_id'}]}
+        mock_neutron = mock.MagicMock()
+        mock_neutron.list_networks.return_value = mock_networks
+        mock_os_cli = mock.MagicMock()
+        mock_os_cli.neutron.return_value = mock_neutron
+        self.assertEqual('test_net_id',
+                         attr_validator.validate_fixed_network(mock_os_cli,
+                                                               'test_net'))
+        self.assertTrue(mock_neutron.list_networks.called)
+
+    def test_validate_fixed_network_with_multiple_valid_network(self):
+        mock_networks = {
+            'networks': [{'name': 'test_net',
+                          'id': 'test_net_id1'},
+                         {'name': 'test_net',
+                          'id': 'test_net_id2'}],
+        }
+        mock_neutron = mock.MagicMock()
+        mock_neutron.list_networks.return_value = mock_networks
+        mock_os_cli = mock.MagicMock()
+        mock_os_cli.neutron.return_value = mock_neutron
+        self.assertRaises(exception.Conflict,
+                          attr_validator.validate_fixed_network,
+                          mock_os_cli, 'test_net')
+
+    def test_validate_fixed_network_with_invalid_network(self):
+        mock_networks = {'networks': [{'name': 'test_net_not_equal',
+                         'id': 'test_net_id_not_equal'}]}
+        mock_neutron = mock.MagicMock()
+        mock_neutron.list_networks.return_value = mock_networks
+        mock_os_cli = mock.MagicMock()
+        mock_os_cli.neutron.return_value = mock_neutron
+        self.assertRaises(exception.FixedNetworkNotFound,
+                          attr_validator.validate_fixed_network,
+                          mock_os_cli, 'test_net')
+
+    def test_validate_fixed_subnet_with_valid_subnet(self):
+        mock_neutron = mock.MagicMock()
+        mock_subnets = {'subnets': [{'name': 'test_subnet',
+                                     'id': 'test_subnet_id',
+                                     'network_id': 'test_net_id'}]}
+        mock_neutron.list_subnets.return_value = mock_subnets
+        mock_os_cli = mock.MagicMock()
+        mock_os_cli.neutron.return_value = mock_neutron
+        self.assertEqual('test_subnet_id',
+                         attr_validator.validate_fixed_subnet(mock_os_cli,
+                                                              'test_subnet'))
+        mock_neutron.list_subnets.assert_called_with()
+
+    def test_validate_fixed_subnet_with_invalid_subnet(self):
+        mock_neutron = mock.MagicMock()
+        mock_subnets = {'subnets': [{'name': 'test_subnet',
+                                     'id': 'test_subnet_id',
+                                     'network_id': 'test_net_id'}]}
+        mock_neutron.list_subnets.return_value = mock_subnets
+        mock_os_cli = mock.MagicMock()
+        mock_os_cli.neutron.return_value = mock_neutron
+        self.assertRaises(exception.FixedSubnetNotFound,
+                          attr_validator.validate_fixed_subnet,
+                          mock_os_cli, 'test_subnet_not_found')
+
+    def test_validate_fixed_subnet_with_multiple_valid_subnet(self):
+        mock_neutron = mock.MagicMock()
+        mock_subnets = {'subnets': [{'name': 'test_subnet',
+                                     'id': 'test_subnet_id',
+                                     'network_id': 'test_net_id'},
+                                    {'name': 'test_subnet',
+                                     'id': 'test_subnet_id2',
+                                     'network_id': 'test_net_id2'}]}
+        mock_neutron.list_subnets.return_value = mock_subnets
+        mock_os_cli = mock.MagicMock()
+        mock_os_cli.neutron.return_value = mock_neutron
+        self.assertRaises(exception.Conflict,
+                          attr_validator.validate_fixed_subnet,
+                          mock_os_cli, 'test_subnet')
+
     def test_validate_keypair_with_no_keypair(self):
         mock_keypair = mock.MagicMock()
         mock_keypair.id = None
@@ -125,28 +203,14 @@ class TestAttrValidator(base.BaseTestCase):
         fake_labels = {}
         attr_validator.validate_labels(fake_labels)
 
-    def test_validate_labels_strategy_valid(self):
-        fake_labels = {'swarm_strategy': 'spread'}
-        attr_validator.validate_labels_strategy(fake_labels)
-
-    def test_validate_labels_strategy_missing(self):
-        fake_labels = {'strategy': 'spread'}
-        attr_validator.validate_labels_strategy(fake_labels)
-
-    def test_validate_labels_strategy_invalid(self):
-        fake_labels = {'swarm_strategy': 'invalid'}
-        self.assertRaises(exception.InvalidParameterValue,
-                          attr_validator.validate_labels_strategy,
-                          fake_labels)
-
     @mock.patch('magnum.api.utils.get_openstack_resource')
     def test_validate_image_with_valid_image_by_name(self, mock_os_res):
-        mock_image = {'name': 'fedora-21-atomic-5',
+        mock_image = {'name': 'fedora-21-coreos-5',
                       'id': 'e33f0988-1730-405e-8401-30cbc8535302',
-                      'os_distro': 'fedora-atomic'}
+                      'os_distro': 'fedora-coreos'}
         mock_os_res.return_value = mock_image
         mock_os_cli = mock.MagicMock()
-        attr_validator.validate_image(mock_os_cli, 'fedora-21-atomic-5')
+        attr_validator.validate_image(mock_os_cli, 'fedora-21-coreos-5')
         self.assertTrue(mock_os_res.called)
 
     @mock.patch('magnum.api.utils.get_openstack_resource')
@@ -158,13 +222,13 @@ class TestAttrValidator(base.BaseTestCase):
         mock_os_cli = mock.MagicMock()
         self.assertRaises(exception.ImageNotAuthorized,
                           attr_validator.validate_image, mock_os_cli,
-                          'fedora-21-atomic-5')
+                          'fedora-21-coreos-5')
 
     @mock.patch('magnum.api.utils.get_openstack_resource')
     def test_validate_image_with_valid_image_by_id(self, mock_os_res):
-        mock_image = {'name': 'fedora-21-atomic-5',
+        mock_image = {'name': 'fedora-21-coreos-5',
                       'id': 'e33f0988-1730-405e-8401-30cbc8535302',
-                      'os_distro': 'fedora-atomic'}
+                      'os_distro': 'fedora-coreos'}
         mock_os_res.return_value = mock_image
         mock_os_cli = mock.MagicMock()
         attr_validator.validate_image(mock_os_cli,
@@ -177,7 +241,7 @@ class TestAttrValidator(base.BaseTestCase):
         mock_os_cli = mock.MagicMock()
         self.assertRaises(exception.ImageNotFound,
                           attr_validator.validate_image,
-                          mock_os_cli, 'fedora-21-atomic-5')
+                          mock_os_cli, 'fedora-21-coreos-5')
 
     @mock.patch('magnum.api.utils.get_openstack_resource')
     def test_validate_image_with_nonexist_image_by_id(self, mock_os_res):
@@ -185,7 +249,7 @@ class TestAttrValidator(base.BaseTestCase):
         mock_os_cli = mock.MagicMock()
         self.assertRaises(exception.ImageNotFound,
                           attr_validator.validate_image,
-                          mock_os_cli, 'fedora-21-atomic-5')
+                          mock_os_cli, 'fedora-21-coreos-5')
 
     @mock.patch('magnum.api.utils.get_openstack_resource')
     def test_validate_image_with_multi_images_same_name(self, mock_os_res):
@@ -193,28 +257,28 @@ class TestAttrValidator(base.BaseTestCase):
         mock_os_cli = mock.MagicMock()
         self.assertRaises(exception.Conflict,
                           attr_validator.validate_image,
-                          mock_os_cli, 'fedora-21-atomic-5')
+                          mock_os_cli, 'fedora-21-coreos-5')
 
     @mock.patch('magnum.api.utils.get_openstack_resource')
     def test_validate_image_without_os_distro(self, mock_os_res):
-        mock_image = {'name': 'fedora-21-atomic-5',
+        mock_image = {'name': 'fedora-21-coreos-5',
                       'id': 'e33f0988-1730-405e-8401-30cbc8535302'}
         mock_os_res.return_value = mock_image
         mock_os_cli = mock.MagicMock()
         self.assertRaises(exception.OSDistroFieldNotFound,
                           attr_validator.validate_image,
-                          mock_os_cli, 'fedora-21-atomic-5')
+                          mock_os_cli, 'fedora-21-coreos-5')
 
     @mock.patch('magnum.api.utils.get_openstack_resource')
     def test_validate_image_when_user_forbidden(self, mock_os_res):
-        mock_image = {'name': 'fedora-21-atomic-5',
+        mock_image = {'name': 'fedora-21-coreos-5',
                       'id': 'e33f0988-1730-405e-8401-30cbc8535302',
                       'os_distro': ''}
         mock_os_res.return_value = mock_image
         mock_os_cli = mock.MagicMock()
         self.assertRaises(exception.OSDistroFieldNotFound,
                           attr_validator.validate_image,
-                          mock_os_cli, 'fedora-21-atomic-5')
+                          mock_os_cli, 'fedora-21-coreos-5')
 
     @mock.patch('magnum.common.clients.OpenStackClients')
     def test_validate_os_resources_with_invalid_flavor(self,
@@ -233,16 +297,6 @@ class TestAttrValidator(base.BaseTestCase):
                           mock_context, mock_cluster_template)
 
     @mock.patch('magnum.common.clients.OpenStackClients')
-    @mock.patch('magnum.api.attr_validator.validate_labels')
-    def test_validate_os_resources_with_label(self, mock_validate_labels,
-                                              mock_os_cli):
-        mock_cluster_template = {'labels': {'swarm_strategy': 'abc'}}
-        mock_context = mock.MagicMock()
-        self.assertRaises(exception.InvalidParameterValue,
-                          attr_validator.validate_os_resources, mock_context,
-                          mock_cluster_template)
-
-    @mock.patch('magnum.common.clients.OpenStackClients')
     @mock.patch('magnum.api.attr_validator.validators')
     def test_validate_os_resources_without_validator(self, mock_validators,
                                                      mock_os_cli):
@@ -250,6 +304,47 @@ class TestAttrValidator(base.BaseTestCase):
         mock_context = mock.MagicMock()
         attr_validator.validate_os_resources(mock_context,
                                              mock_cluster_template)
+
+    @mock.patch('magnum.common.clients.OpenStackClients')
+    def test_validate_os_resources_with_valid_fixed_subnet(self,
+                                                           os_clients_klass):
+        mock_cluster_template = {'fixed_network': 'test_net',
+                                 'fixed_subnet': 'test_subnet'}
+        mock_context = mock.MagicMock()
+        mock_os_cli = mock.MagicMock()
+        os_clients_klass.return_value = mock_os_cli
+        mock_neutron = mock.MagicMock()
+        mock_networks = {'networks': [{'name': 'test_net',
+                                       'id': 'test_net_id'}]}
+        mock_neutron.list_networks.return_value = mock_networks
+        mock_subnets = {'subnets': [{'name': 'test_subnet',
+                                     'id': 'test_subnet_id',
+                                     'network_id': 'test_net_id'}]}
+        mock_neutron.list_subnets.return_value = mock_subnets
+        mock_os_cli.neutron.return_value = mock_neutron
+        attr_validator.validate_os_resources(mock_context,
+                                             mock_cluster_template)
+
+    @mock.patch('magnum.common.clients.OpenStackClients')
+    def test_validate_os_resources_with_invalid_fixed_subnet(self,
+                                                             os_clients_klass):
+        mock_cluster_template = {'fixed_network': 'test_net',
+                                 'fixed_subnet': 'test_subnet2'}
+        mock_context = mock.MagicMock()
+        mock_os_cli = mock.MagicMock()
+        os_clients_klass.return_value = mock_os_cli
+        mock_neutron = mock.MagicMock()
+        mock_networks = {'networks': [{'name': 'test_net',
+                                       'id': 'test_net_id'}]}
+        mock_neutron.list_networks.return_value = mock_networks
+        mock_subnets = {'subnets': [{'name': 'test_subnet',
+                                     'id': 'test_subnet_id',
+                                     'network_id': 'test_net_id'}]}
+        mock_neutron.list_subnets.return_value = mock_subnets
+        mock_os_cli.neutron.return_value = mock_neutron
+        self.assertRaises(exception.FixedSubnetNotFound,
+                          attr_validator.validate_os_resources, mock_context,
+                          mock_cluster_template)
 
     @mock.patch('magnum.common.clients.OpenStackClients')
     def test_validate_os_resources_with_cluster(self, mock_os_cli):
@@ -260,9 +355,9 @@ class TestAttrValidator(base.BaseTestCase):
         }
         mock_keypair = mock.MagicMock()
         mock_keypair.id = 'test-keypair'
-        mock_image = {'name': 'fedora-21-atomic-5',
+        mock_image = {'name': 'fedora-21-coreos-5',
                       'id': 'e33f0988-1730-405e-8401-30cbc8535302',
-                      'os_distro': 'fedora-atomic'}
+                      'os_distro': 'fedora-coreos'}
         mock_nova = mock.MagicMock()
         mock_nova.keypairs.get.return_value = mock_keypair
         mock_nova.images.get.return_value = mock_image

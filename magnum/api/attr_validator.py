@@ -27,7 +27,6 @@ SUPPORTED_ISOLATION = ['filesystem/posix', 'filesystem/linux',
                        'cgroups/mem', 'docker/runtime',
                        'namespaces/pid']
 SUPPORTED_IMAGE_PROVIDERS = ['docker', 'appc']
-SUPPORTED_SWARM_STRATEGY = ['spread', 'binpack', 'random']
 
 
 def validate_image(cli, image):
@@ -99,9 +98,45 @@ def validate_external_network(cli, external_network):
 def validate_fixed_network(cli, fixed_network):
     """Validate fixed network"""
 
-    # TODO(houming):this method implement will be added after this
-    # first pathch for Cluster's OpenStack resources validation is merged.
-    pass
+    count = 0
+    network_id = None
+    networks = cli.neutron().list_networks()
+    for net in networks.get('networks'):
+        if fixed_network in [net.get('name'), net.get('id')]:
+            count += 1
+            network_id = net.get('id')
+
+    if count == 0:
+        # Unable to find the configured fixed_network.
+        raise exception.FixedNetworkNotFound(network=fixed_network)
+    elif count > 1:
+        msg = _("Multiple networks exist with same name '%s'. "
+                "Please use the network ID instead.")
+        raise exception.Conflict(msg % fixed_network)
+
+    return network_id
+
+
+def validate_fixed_subnet(cli, fixed_subnet):
+    """Validate fixed subnet"""
+
+    count = 0
+    subnet_id = None
+    subnets = cli.neutron().list_subnets()
+    for subnet in subnets.get('subnets'):
+        if fixed_subnet in [subnet.get('name'), subnet.get('id')]:
+            count += 1
+            subnet_id = subnet.get('id')
+
+    if count == 0:
+        # Unable to find the configured fixed_subnet.
+        raise exception.FixedSubnetNotFound(subnet=fixed_subnet)
+    elif count > 1:
+        msg = _("Multiple subnets exist with same name '%s'. "
+                "Please use the subnet ID instead.")
+        raise exception.Conflict(msg % fixed_subnet)
+    else:
+        return subnet_id
 
 
 def validate_labels(labels):
@@ -112,21 +147,6 @@ def validate_labels(labels):
             validate_method(labels)
 
 
-def validate_labels_strategy(labels):
-    """Validate swarm_strategy"""
-    swarm_strategy = list(labels.get('swarm_strategy', "").split())
-    unsupported_strategy = set(swarm_strategy) - set(
-        SUPPORTED_SWARM_STRATEGY)
-    if (len(unsupported_strategy) > 0):
-        raise exception.InvalidParameterValue(_(
-            'property "labels/swarm_strategy" with value '
-            '"%(strategy)s" is not supported, supported values are: '
-            '%(supported_strategies)s') % {
-                'strategy': ' '.join(list(unsupported_strategy)),
-                'supported_strategies': ', '.join(
-                    SUPPORTED_SWARM_STRATEGY + ['unspecified'])})
-
-
 def validate_os_resources(context, cluster_template, cluster=None):
     """Validate ClusterTemplate's OpenStack Resources"""
 
@@ -134,15 +154,15 @@ def validate_os_resources(context, cluster_template, cluster=None):
 
     for attr, validate_method in validators.items():
         if cluster and attr in cluster and cluster[attr]:
-            if attr != 'labels':
-                validate_method(cli, cluster[attr])
-            else:
+            if attr == 'labels':
                 validate_method(cluster[attr])
-        elif attr in cluster_template and cluster_template[attr] is not None:
-            if attr != 'labels':
-                validate_method(cli, cluster_template[attr])
             else:
+                validate_method(cli, cluster[attr])
+        elif attr in cluster_template and cluster_template[attr] is not None:
+            if attr == 'labels':
                 validate_method(cluster_template[attr])
+            else:
+                validate_method(cli, cluster_template[attr])
 
     if cluster:
         validate_keypair(cli, cluster['keypair'])
@@ -188,6 +208,7 @@ validators = {'image_id': validate_image,
               'master_flavor_id': validate_flavor,
               'external_network_id': validate_external_network,
               'fixed_network': validate_fixed_network,
+              'fixed_subnet': validate_fixed_subnet,
               'labels': validate_labels}
 
-labels_validators = {'swarm_strategy': validate_labels_strategy}
+labels_validators = {}

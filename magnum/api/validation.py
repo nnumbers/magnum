@@ -68,7 +68,8 @@ def enforce_driver_supported():
     def wrapper(func, *args, **kwargs):
         cluster_template = args[1]
         cluster_distro = cluster_template.cluster_distro
-        if not cluster_distro:
+        driver_name = cluster_template.driver
+        if not cluster_distro or not driver_name:
             try:
                 cli = clients.OpenStackClients(pecan.request.context)
                 image_id = cluster_template.image_id
@@ -76,11 +77,13 @@ def enforce_driver_supported():
                                                          image_id,
                                                          'images')
                 cluster_distro = image.get('os_distro')
+                driver_name = image.get('magnum_driver')
             except Exception:
                 pass
         cluster_type = (cluster_template.server_type,
                         cluster_distro,
-                        cluster_template.coe)
+                        cluster_template.coe,
+                        driver_name)
         driver.Driver.get_driver(*cluster_type)
         return func(*args, **kwargs)
 
@@ -254,8 +257,6 @@ class Validator(object):
     def get_coe_validator(cls, coe):
         if coe == 'kubernetes':
             return K8sValidator()
-        elif coe == 'swarm' or coe == 'swarm-mode':
-            return SwarmValidator()
         else:
             raise exception.InvalidParameterValue(
                 _('Requested COE type %s is not supported.') % coe)
@@ -321,7 +322,12 @@ class Validator(object):
 
 class K8sValidator(Validator):
 
-    supported_network_drivers = ['flannel', 'calico']
+    # NOTE(okozachenko): Cilium is added in the supported list because some
+    # cluster drivers like capi-driver supports this. But the Heat driver
+    # doesn't support this yet.
+    # In the future, supported network driver list should be fetched from
+    # cluster driver implementation instead of this fixed values.
+    supported_network_drivers = ['flannel', 'calico', 'cilium']
     supported_server_types = ['vm', 'bm']
     allowed_network_drivers = (
         CONF.cluster_template.kubernetes_allowed_network_drivers)
@@ -329,15 +335,3 @@ class K8sValidator(Validator):
         CONF.cluster_template.kubernetes_default_network_driver)
 
     supported_volume_driver = ['cinder']
-
-
-class SwarmValidator(Validator):
-
-    supported_network_drivers = ['docker', 'flannel']
-    supported_server_types = ['vm', 'bm']
-    allowed_network_drivers = (CONF.cluster_template.
-                               swarm_allowed_network_drivers)
-    default_network_driver = (CONF.cluster_template.
-                              swarm_default_network_driver)
-
-    supported_volume_driver = ['rexray']

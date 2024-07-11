@@ -199,7 +199,7 @@ function create_magnum_conf {
     fi
 
     # Register SSL certificates if provided
-    if is_ssl_enabled_service magnum; then
+    if is_service_enabled tls-proxy; then
         ensure_certificates MAGNUM
 
         iniset $MAGNUM_CONF DEFAULT ssl_cert_file "$MAGNUM_SSL_CERT"
@@ -238,7 +238,8 @@ function create_magnum_conf {
     # default in magnum.conf
     default_volume_type=$(iniget /etc/cinder/cinder.conf DEFAULT default_volume_type)
     iniset $MAGNUM_CONF cinder default_docker_volume_type $default_volume_type
-    iniset $MAGNUM_CONF drivers send_cluster_metrics False
+
+    iniset $MAGNUM_CONF drivers enabled_beta_drivers $MAGNUM_BETA_DRIVERS
 
     iniset $MAGNUM_CONF kubernetes keystone_auth_default_policy $MAGNUM_K8S_KEYSTONE_AUTH_DEFAULT_POLICY
 
@@ -296,12 +297,6 @@ function magnum_register_image {
     local fedora_coreos="$(echo $MAGNUM_GUEST_IMAGE_URL | grep -io "fedora-coreos" || true;)"
     if [ ! -z "$fedora_coreos" ]; then
         magnum_image_property=$magnum_image_property"fedora-coreos"
-    fi
-    # os_distro property for fedora ironic image
-    local fedora_ironic="$(echo $MAGNUM_GUEST_IMAGE_URL | grep -i "ironic" \
-                                                        | grep -io "fedora" || true;)"
-    if [ ! -z "$fedora_ironic" ]; then
-        magnum_image_property=$magnum_image_property"fedora"
     fi
 
     # get the image name

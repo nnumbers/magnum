@@ -16,7 +16,6 @@ WebOb>=1.8.1 # MIT
 alembic>=0.9.6 # MIT
 cliff!=2.9.0,>=2.8.0 # Apache-2.0
 decorator>=3.4.0 # BSD
-docker>=4.3.0 # Apache-2.0
 eventlet>=0.28.0 # MIT
 iso8601>=0.1.11 # MIT
 jsonpatch!=1.20,>=1.16 # BSD
@@ -51,7 +50,6 @@ python-keystoneclient>=3.20.0 # Apache-2.0
 python-octaviaclient>=2.1.0 # Apache-2.0
 requests>=2.20.1 # Apache-2.0
 setuptools!=34.0.0,!=34.0.1,!=34.0.2,!=34.0.3,!=34.1.0,!=34.1.1,!=34.2.0,!=34.3.0,!=34.3.1,!=34.3.2,!=36.2.0,>=30.0.0 # PSF/ZPL
-six>=1.10.0 # MIT
 stevedore>=3.3.0 # Apache-2.0
 taskflow>=2.16.0 # Apache-2.0
 cryptography>=2.1.4 # BSD/Apache-2.0

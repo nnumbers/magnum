@@ -15,15 +15,15 @@
 """
 SQLAlchemy models for container service
 """
+from urllib import parse as urlparse
 
 from oslo_db.sqlalchemy import models
 from oslo_serialization import jsonutils
-import six.moves.urllib.parse as urlparse
 from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import DateTime
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Integer
+from sqlalchemy.orm import declarative_base
 from sqlalchemy import schema
 from sqlalchemy import Text
 from sqlalchemy.types import TypeDecorator, TEXT, String
@@ -93,7 +93,8 @@ class MagnumBase(models.TimestampMixin,
         if session is None:
             session = db_api.get_session()
 
-        super(MagnumBase, self).save(session)
+        with session.begin():
+            super(MagnumBase, self).save(session)
 
 
 Base = declarative_base(cls=MagnumBase)
@@ -191,6 +192,7 @@ class ClusterTemplate(Base):
     floating_ip_enabled = Column(Boolean, default=True)
     hidden = Column(Boolean, default=False)
     tags = Column(String(255))
+    driver = Column(String(255))
 
 
 class X509KeyPair(Base):

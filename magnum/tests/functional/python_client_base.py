@@ -17,14 +17,13 @@ test_magnum
 Tests for `magnum` module.
 """
 
+import configparser
 import os
 import subprocess
 import tempfile
 import time
 
 import fixtures
-from six.moves import configparser
-
 from heatclient import client as heatclient
 from keystoneauth1.identity import v3 as ksa_v3
 from keystoneauth1 import session as ksa_session
@@ -376,12 +375,6 @@ extendedKeyUsage = clientAuth
         output_keys = []
         if self.cluster_template.coe == "kubernetes":
             output_keys = ["kube_masters", "kube_minions"]
-        elif self.cluster_template.coe == "swarm":
-            output_keys = ["swarm_masters", "swarm_nodes"]
-        elif self.cluster_template.coe == "swarm-mode":
-            output_keys = ["swarm_primary_master",
-                           "swarm_secondary_masters",
-                           "swarm_nodes"]
 
         for output in stack_outputs:
             for key in output_keys:

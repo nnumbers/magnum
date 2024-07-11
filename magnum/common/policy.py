@@ -32,11 +32,16 @@ LOG = logging.getLogger(__name__)
 _ENFORCER = None
 CONF = cfg.CONF
 
-# TODO(gmann): Remove setting the default value of config policy_file
-# once oslo_policy change the default value to 'policy.yaml'.
-# https://github.com/openstack/oslo.policy/blob/a626ad12fe5a3abd49d70e3e5b95589d279ab578/oslo_policy/opts.py#L49
+# TODO(ricolin): Remove overriding the default value of config options
+# 'policy_file', 'enforce_scope', and 'enforce_new_defaults' once
+# oslo_policy change their default value to what is overridden here.
 DEFAULT_POLICY_FILE = 'policy.yaml'
-opts.set_defaults(CONF, DEFAULT_POLICY_FILE)
+opts.set_defaults(
+    CONF,
+    DEFAULT_POLICY_FILE,
+    enforce_scope=True,
+    enforce_new_defaults=True
+)
 
 
 # we can get a policy enforcer by this init.
@@ -125,6 +130,14 @@ def add_policy_attributes(target):
     trustee_domain_id = admin_osc.keystone().trustee_domain_id
     target['trustee_domain_id'] = trustee_domain_id
     return target
+
+
+def get_enforcer():
+    # This method is used by oslopolicy CLI scripts in order to generate policy
+    # files from overrides on disk and defaults in code.
+    cfg.CONF([], project='magnum')
+    init()
+    return _ENFORCER
 
 
 def check_is_admin(context):

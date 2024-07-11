@@ -15,7 +15,6 @@
 from oslo_log import log as logging
 from oslo_utils import timeutils
 import pecan
-import six
 import warnings
 import wsme
 from wsme import types as wtypes
@@ -91,7 +90,7 @@ class ClusterTemplate(base.APIBase):
     """The size in GB of the docker volume"""
 
     cluster_distro = wtypes.StringType(min_length=1, max_length=255)
-    """The Cluster distro for the Cluster, e.g. coreos, fedora-atomic, etc."""
+    """The Cluster distro for the Cluster, e.g. coreos, fedora-coreos, etc."""
 
     links = wsme.wsattr([link.Link], readonly=True)
     """A list containing a self link and associated ClusterTemplate links"""
@@ -117,10 +116,10 @@ class ClusterTemplate(base.APIBase):
     registry_enabled = wsme.wsattr(types.boolean, default=False)
     """Indicates whether the docker registry is enabled"""
 
-    labels = wtypes.DictType(wtypes.text, types.MultiType(wtypes.text,
-                                                          six.integer_types,
-                                                          bool,
-                                                          float))
+    labels = wtypes.DictType(
+        wtypes.text,
+        types.MultiType(wtypes.text, int, bool, float)
+    )
     """One or more key/value pairs"""
 
     tls_disabled = wsme.wsattr(types.boolean, default=False)
@@ -158,6 +157,9 @@ class ClusterTemplate(base.APIBase):
 
     tags = wtypes.StringType(min_length=0, max_length=255)
     """A comma separated list of tags."""
+
+    driver = wtypes.StringType(min_length=0, max_length=255)
+    """Driver name set explicitly"""
 
     def __init__(self, **kwargs):
         self.fields = []
@@ -203,7 +205,7 @@ class ClusterTemplate(base.APIBase):
             apiserver_port=8080,
             docker_volume_size=25,
             docker_storage_driver='devicemapper',
-            cluster_distro='fedora-atomic',
+            cluster_distro='fedora-coreos',
             coe=fields.ClusterType.KUBERNETES,
             http_proxy='http://proxy.com:123',
             https_proxy='https://proxy.com:123',
@@ -266,25 +268,6 @@ class ClusterTemplatesController(base.Controller):
         "and overlay storage drivers are recommended to migrate to a "
         "different storage driver, such as overlay2. overlay2 will be set "
         "as the default storage driver from Victoria cycle in Magnum.")
-
-    _coreos_deprecation_note = (
-        "The coreos driver is deprecated in favor of the fedora_coreos "
-        "driver. Please migrate to the fedora_coreos driver. coreos "
-        "driver will be removed in a future Magnum version.")
-
-    _fedora_atomic_deprecation_note = (
-        "The fedora_atomic driver is deprecated in favor of the fedora_coreos "
-        "driver. Please migrate to the fedora_coreos driver. fedora_atomic "
-        "driver will be removed in a future Magnum version.")
-
-    _fedora_ironic_deprecation_note = (
-        "The fedora ironic driver is deprecated. "
-        "The driver will be removed in a future Magnum version.")
-
-    _docker_swarm_deprecation_note = (
-        "The swarm coe is deprecated as the fedora_atomic distro is EOL. "
-        "Please migrate to using the kubernetes coe. "
-        "The swarm coe will be removed in a future Magnum version.")
 
     def _generate_name_for_cluster_template(self, context):
         """Generate a random name like: zeta-22-model."""
@@ -428,6 +411,9 @@ class ClusterTemplatesController(base.Controller):
         cluster_template_dict['cluster_distro'] = image_data['os_distro']
         cluster_template_dict['project_id'] = context.project_id
         cluster_template_dict['user_id'] = context.user_id
+        # NOTE(jake): read driver from image for now, update client to provide
+        # this as param in the future
+        cluster_template_dict['driver'] = image_data.get('magnum_driver')
         # check permissions for making cluster_template public or hidden
         if cluster_template_dict['public'] or cluster_template_dict['hidden']:
             if not policy.enforce(context, "clustertemplate:publish", None,
@@ -441,29 +427,10 @@ class ClusterTemplatesController(base.Controller):
             LOG.warning(self._devicemapper_overlay_deprecation_note)
 
         if (cluster_template_dict['coe'] == 'kubernetes' and
-                cluster_template_dict['cluster_distro'] == 'fedora-atomic'):
-            warnings.warn(self._fedora_atomic_deprecation_note,
-                          DeprecationWarning)
-            LOG.warning(self._fedora_atomic_deprecation_note)
-
-        if (cluster_template_dict['coe'] == 'kubernetes' and
                 cluster_template_dict['cluster_distro'] == 'coreos'):
             warnings.warn(self._coreos_deprecation_note,
                           DeprecationWarning)
             LOG.warning(self._coreos_deprecation_note)
-
-        if (cluster_template_dict['coe'] == 'kubernetes' and
-                cluster_template_dict['cluster_distro'] == 'fedora' and
-                cluster_template_dict['server_type'] == 'bm'):
-            warnings.warn(self._fedora_ironic_deprecation_note,
-                          DeprecationWarning)
-            LOG.warning(self._fedora_ironic_deprecation_note)
-
-        if (cluster_template_dict['coe'] == 'swarm' or
-                cluster_template_dict['coe'] == 'swarm-mode'):
-            warnings.warn(self._docker_swarm_deprecation_note,
-                          DeprecationWarning)
-            LOG.warning(self._docker_swarm_deprecation_note)
 
         # NOTE(yuywz): We will generate a random human-readable name for
         # cluster_template if the name is not specified by user.
