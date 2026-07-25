@@ -14,11 +14,16 @@ from oslo_log import log as logging
 
 from magnum.common import exception
 from magnum.common import utils
+import magnum.conf
 
 LOG = logging.getLogger(__name__)
-
+CONF = magnum.conf.CONF
 
 def create_trustee_and_trust(osc, cluster):
+
+    if not CONF.trust.cluster_user_trust:
+        return
+    
     try:
         password = utils.generate_password(length=18)
 
@@ -44,6 +49,10 @@ def create_trustee_and_trust(osc, cluster):
 
 
 def delete_trustee_and_trust(osc, context, cluster):
+
+    if not CONF.trust.cluster_user_trust:
+        return
+    
     kst = osc.keystone()
     try:
         if cluster.trust_id:
