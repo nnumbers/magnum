@@ -50,9 +50,6 @@ def create_trustee_and_trust(osc, cluster):
 
 def delete_trustee_and_trust(osc, context, cluster):
 
-    if not CONF.trust.cluster_user_trust:
-        return
-    
     kst = osc.keystone()
     try:
         if cluster.trust_id:
